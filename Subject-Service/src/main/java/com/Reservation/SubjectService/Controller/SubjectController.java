@@ -75,11 +75,18 @@ public class SubjectController {
 
     //Update Subject Details
     @PutMapping("/update/{subjectId}")
-    public ResponseEntity<MessageResponse> updateSubject(
-            @PathVariable Long subjectId,
-            @RequestBody SubjectDTO subjectRequest
-    ) {
-        subjectService.updateSubjectDetailsWithOtherEntities(subjectId, subjectRequest);
-        return ResponseEntity.ok(new MessageResponse("Subject updated Successfully!"));
+    public ResponseEntity<?> updateSubject(@PathVariable Long subjectId, @RequestBody SubjectDTO subjectRequest,
+                                           BindingResult bindingResult) {
+        try {
+            if (bindingResult.hasErrors()) {
+                return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
+            }
+            subjectService.updateSubjectDetailsWithOtherEntities(subjectId, subjectRequest);
+            return ResponseEntity.ok(new MessageResponse("Subject updated Successfully!"));
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
     }
 }
