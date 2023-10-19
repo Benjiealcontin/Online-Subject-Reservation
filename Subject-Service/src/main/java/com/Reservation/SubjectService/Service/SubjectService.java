@@ -38,7 +38,7 @@ public class SubjectService {
     }
 
     //Create a subject
-    @CircuitBreaker(name = "createSubject", fallbackMethod = "createSubjectFallback")
+    @CircuitBreaker(name = "Subject", fallbackMethod = "SubjectFallback")
     public MessageResponse createSubject(SubjectRequest subjectRequest) {
         String subjectName = subjectRequest.getSubjectName();
         String subjectCode = subjectRequest.getSubjectCode();
@@ -81,11 +81,6 @@ public class SubjectService {
         }
     }
 
-    public MessageResponse createSubjectFallback(SubjectRequest subjectRequest, Throwable t) {
-        log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
-        return new MessageResponse("Subject creation is temporarily unavailable. Please try again later.");
-    }
-
     //Find All Subject
     public List<SubjectDTO> getAllSubjects() {
         List<Subject> subjects = subjectRepository.findAll();
@@ -114,6 +109,7 @@ public class SubjectService {
     }
 
     //Update Subject
+    @CircuitBreaker(name = "Subject", fallbackMethod = "SubjectFallback")
     public void updateSubjectDetailsWithOtherEntities(Long id, SubjectDTO updatedSubjectDTO) {
         Subject existingSubject = subjectRepository.findById(id)
                 .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
@@ -151,4 +147,8 @@ public class SubjectService {
         return modelMapper.map(subject, SubjectDTO.class);
     }
 
+    public MessageResponse SubjectFallback(SubjectRequest subjectRequest,Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
+        return new MessageResponse("Subject service is temporarily unavailable. Please try again later.");
+    }
 }
