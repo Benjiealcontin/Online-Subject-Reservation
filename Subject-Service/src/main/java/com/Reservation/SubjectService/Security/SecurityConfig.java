@@ -26,9 +26,13 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**",
                             "/subjects/*",
-                            "AllSubjects").permitAll();
+                            "/AllSubjects").permitAll();
                     auth.requestMatchers(HttpMethod.POST,
                             "/create-subject").hasRole(STUDENT);
+                    auth.requestMatchers(HttpMethod.DELETE,
+                            "/delete/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.PUT,
+                            "/update/*").hasRole(ADMIN);
                     auth.anyRequest().authenticated();
                 });
 

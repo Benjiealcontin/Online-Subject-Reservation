@@ -1,15 +1,13 @@
 package com.Reservation.SubjectService.Service;
 
+import com.Reservation.SubjectService.Dto.InstructorDTO;
 import com.Reservation.SubjectService.Dto.MessageResponse;
 import com.Reservation.SubjectService.Dto.ScheduleDTO;
 import com.Reservation.SubjectService.Dto.SubjectDTO;
 import com.Reservation.SubjectService.Entity.Instructor;
 import com.Reservation.SubjectService.Entity.Schedule;
 import com.Reservation.SubjectService.Entity.Subject;
-import com.Reservation.SubjectService.Exception.SubjectAlreadyExistsException;
-import com.Reservation.SubjectService.Exception.SubjectCodeAlreadyExistsException;
-import com.Reservation.SubjectService.Exception.SubjectCreationException;
-import com.Reservation.SubjectService.Exception.SubjectNotFoundException;
+import com.Reservation.SubjectService.Exception.*;
 import com.Reservation.SubjectService.Repository.InstructorRepository;
 import com.Reservation.SubjectService.Repository.ScheduleRepository;
 import com.Reservation.SubjectService.Repository.SubjectRepository;
@@ -104,6 +102,57 @@ public class SubjectService {
         Optional<Subject> subjectOptional = subjectRepository.findBySubjectCode(subjectCode);
 
         return subjectOptional.map(this::convertToDTO);
+    }
+
+
+    //Delete Subject
+    public void deleteSubject(Long subjectId) {
+        if (!subjectRepository.existsById(subjectId)) {
+            throw new SubjectNotFoundException("Subject with ID " + subjectId + " not found.");
+        }
+        subjectRepository.deleteById(subjectId);
+    }
+
+    //Update Subject
+    public void updateSubjectDetailsWithOtherEntities(Long id, SubjectDTO updatedSubjectDTO) {
+        // Retrieve the existing subject from the database
+        Subject existingSubject = subjectRepository.findById(id)
+                .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+
+        // Update the fields of the existing Subject entity
+        existingSubject.setSubjectCode(updatedSubjectDTO.getSubjectCode());
+        existingSubject.setSubjectName(updatedSubjectDTO.getSubjectName());
+        existingSubject.setDescription(updatedSubjectDTO.getDescription());
+        existingSubject.setAvailableSlots(updatedSubjectDTO.getAvailableSlots());
+
+        // Update the related Instructor entity
+        InstructorDTO updatedInstructorDTO = updatedSubjectDTO.getInstructor();
+        Instructor existingInstructor = existingSubject.getInstructor();
+        existingInstructor.setInstructorId(updatedInstructorDTO.getInstructorId());
+        existingInstructor.setFirstname(updatedInstructorDTO.getFirstname());
+        existingInstructor.setLastname(updatedInstructorDTO.getLastname());
+        existingInstructor.setEmail(updatedInstructorDTO.getEmail());
+        existingInstructor.setExpertise(updatedInstructorDTO.getExpertise());
+
+        if(updatedSubjectDTO.getScheduleList()  != null) {
+            List<ScheduleDTO> updatedSubjectDTOScheduleList = updatedSubjectDTO.getScheduleList();
+
+            for (int i = 0; i < updatedSubjectDTOScheduleList.size(); i++) {
+                ScheduleDTO updatedScheduleDTO = updatedSubjectDTOScheduleList.get(i);
+                Schedule existingSchedule = existingSubject.getScheduleList().get(i);
+
+                if (existingSchedule != null) {
+                    // Update order item fields from the updatedOrderItemDTO
+                    BeanUtils.copyProperties(updatedScheduleDTO, existingSchedule);
+                }
+            }
+        }
+
+        // Save the updated Subject entity
+        Subject updatedSubject = subjectRepository.save(existingSubject);
+
+        // Convert and return the updated SubjectDTO
+        convertToDTO(updatedSubject);
     }
 
     private SubjectDTO convertToDTO(Subject subject) {

@@ -41,6 +41,7 @@ public class SubjectController {
         }
     }
 
+    //Find All Subjects
     @GetMapping("/AllSubjects")
     public List<SubjectDTO> getAllSubjects() {
         return subjectService.getAllSubjects();
@@ -59,4 +60,26 @@ public class SubjectController {
         }
     }
 
+    //Delete Subject
+    @DeleteMapping("/delete/{subjectId}")
+    public ResponseEntity<?> deleteSubject(@PathVariable Long subjectId) {
+        try {
+            subjectService.deleteSubject(subjectId);
+            return ResponseEntity.ok(new MessageResponse("Subject Delete Successfully!"));
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Update Subject Details
+    @PutMapping("/update/{subjectId}")
+    public ResponseEntity<MessageResponse> updateSubject(
+            @PathVariable Long subjectId,
+            @RequestBody SubjectDTO subjectRequest
+    ) {
+        subjectService.updateSubjectDetailsWithOtherEntities(subjectId, subjectRequest);
+        return ResponseEntity.ok(new MessageResponse("Subject updated Successfully!"));
+    }
 }

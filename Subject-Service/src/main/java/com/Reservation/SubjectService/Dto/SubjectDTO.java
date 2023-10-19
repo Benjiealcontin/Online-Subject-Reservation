@@ -6,6 +6,7 @@ import java.util.List;
 
 @Data
 public class SubjectDTO {
+    private Long id;
     private String subjectCode;
     private String subjectName;
     private String description;
