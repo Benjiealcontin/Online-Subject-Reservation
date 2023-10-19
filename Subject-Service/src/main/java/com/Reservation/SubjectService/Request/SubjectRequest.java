@@ -14,8 +14,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubjectRequest {
-    private long id;
-
     @NotBlank(message = "Subject code is required")
     private String subjectCode;
 

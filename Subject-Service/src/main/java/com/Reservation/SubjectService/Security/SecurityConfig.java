@@ -23,9 +23,12 @@ public class SecurityConfig {
         http.
                 authorizeHttpRequests(auth ->
                 {
-                    auth.requestMatchers(HttpMethod.POST,
+                    auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**",
-                            "/api/subject/create-subject").permitAll();
+                            "/subjects/*",
+                            "AllSubjects").permitAll();
+                    auth.requestMatchers(HttpMethod.POST,
+                            "/create-subject").hasRole(STUDENT);
                     auth.anyRequest().authenticated();
                 });
 

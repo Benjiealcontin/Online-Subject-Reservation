@@ -1,11 +1,11 @@
-package com.Reservation.SubjectService.Util;
+package com.Reservation.SubjectService.Config;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class ModelMapperUtil {
+public class ModelMapperConfig {
 
     @Bean
     public ModelMapper modelMapper() {

@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Entity
 public class Instructor {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String instructorId;
     private String firstname;

@@ -11,8 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InstructorRequest {
-    private long id;
-
     @NotNull(message = "Instructor ID is required")
     private String instructorId;
 

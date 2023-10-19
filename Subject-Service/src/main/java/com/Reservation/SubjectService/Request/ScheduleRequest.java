@@ -14,8 +14,6 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ScheduleRequest {
-    private long id;
-
     @NotNull(message = "Day is required")
     private String day; // Day of the week (e.g., "Monday", "Tuesday")
 
