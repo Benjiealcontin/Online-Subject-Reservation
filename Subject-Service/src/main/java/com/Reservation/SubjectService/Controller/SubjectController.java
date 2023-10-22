@@ -95,6 +95,19 @@ public class SubjectController {
         }
     }
 
+    //Update Available Slot
+    @PutMapping("/slot/{id}")
+    public ResponseEntity<?> UpdateAvailableSlot(@PathVariable Long id) {
+        try {
+            subjectService.UpdateAvailableSlot(id);
+            return ResponseEntity.ok("Successfully Slot redacted");
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
     //
     //  Instructor Management
     //

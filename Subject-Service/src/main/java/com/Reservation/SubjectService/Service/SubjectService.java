@@ -11,6 +11,7 @@ import com.Reservation.SubjectService.Exception.*;
 import com.Reservation.SubjectService.Repository.InstructorRepository;
 import com.Reservation.SubjectService.Repository.ScheduleRepository;
 import com.Reservation.SubjectService.Repository.SubjectRepository;
+import com.Reservation.SubjectService.Request.ReservationRequest;
 import com.Reservation.SubjectService.Request.SubjectRequest;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
@@ -143,12 +144,19 @@ public class SubjectService {
         }
     }
 
+    //Update Available Slot
+    public void UpdateAvailableSlot(Long id){
+        int SlotReduction = 1;
 
+        Subject existingSubject = subjectRepository.findById(id)
+                .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
 
+        int updateSlot= existingSubject.getAvailableSlots() - SlotReduction;
 
-    public MessageResponse SubjectFallback(SubjectRequest subjectRequest,Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
-        log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
-        return new MessageResponse("Subject service is temporarily unavailable. Please try again later.");
+        existingSubject.setAvailableSlots(updateSlot);
+
+        subjectRepository.save(existingSubject);
+
     }
 
     //
@@ -189,5 +197,10 @@ public class SubjectService {
     //Map the DTO and Entities
     private SubjectDTO convertToSubjectDTO(Subject subject) {
         return modelMapper.map(subject, SubjectDTO.class);
+    }
+
+    public MessageResponse SubjectFallback(SubjectRequest subjectRequest,Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
+        return new MessageResponse("Subject service is temporarily unavailable. Please try again later.");
     }
 }
