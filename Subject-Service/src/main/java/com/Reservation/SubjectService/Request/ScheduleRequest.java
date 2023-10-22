@@ -18,8 +18,7 @@ public class ScheduleRequest {
     private String day; // Day of the week (e.g., "Monday", "Tuesday")
 
     @NotNull(message = "Time is required")
-    @DateTimeFormat(pattern = "HH:mm:ss")
-    private Time time; // The scheduled time
+    private String timeSchedule; // The scheduled time
 
     @NotNull(message = "Location is required")
     @Size(min = 1, max = 255, message = "Location must be between 1 and 255 characters")

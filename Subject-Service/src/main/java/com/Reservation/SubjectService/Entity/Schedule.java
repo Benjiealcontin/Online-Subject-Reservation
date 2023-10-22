@@ -16,7 +16,7 @@ public class Schedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String day;
-    private Time time;
+    private String timeSchedule;
     private String location;
     @ManyToOne
     @JoinColumn(name = "subject_id")

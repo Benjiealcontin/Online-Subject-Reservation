@@ -25,6 +25,11 @@ public class SubjectController {
         this.subjectService = subjectService;
     }
 
+    //
+    //  Subject Management
+    //
+
+    //Create Subject
     @PostMapping("/create-subject")
     public ResponseEntity<?> createSubject(@RequestBody @Valid SubjectRequest subjectRequest,
                                            BindingResult bindingResult) {
@@ -83,6 +88,47 @@ public class SubjectController {
             }
             subjectService.updateSubjectDetailsWithOtherEntities(subjectId, subjectRequest);
             return ResponseEntity.ok(new MessageResponse("Subject updated Successfully!"));
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //
+    //  Instructor Management
+    //
+
+
+    //Retrieve Instructor by Firstname
+    @GetMapping("/instructor/firstname/{firstname}")
+    public ResponseEntity<?> findAllInstructorByFirstname(@PathVariable String firstname) {
+        try {
+            return ResponseEntity.ok(subjectService.getSubjectByInstructorFirstName(firstname));
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Retrieve Instructor by Lastname
+    @GetMapping("/instructor/lastname/{lastname}")
+    public ResponseEntity<?> findAllInstructorByLastname(@PathVariable String lastname) {
+        try {
+            return ResponseEntity.ok(subjectService.getSubjectByInstructorLastname(lastname));
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Retrieve Instructor by Expertise
+    @GetMapping("/instructor/expertise/{expertise}")
+    public ResponseEntity<?> findAllInstructorByExpertise(@PathVariable String expertise) {
+        try {
+            return ResponseEntity.ok(subjectService.getSubjectByInstructorExpertise(expertise));
         } catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

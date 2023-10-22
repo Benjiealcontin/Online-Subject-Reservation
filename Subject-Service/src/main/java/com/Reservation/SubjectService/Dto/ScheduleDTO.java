@@ -7,6 +7,6 @@ import java.sql.Time;
 @Data
 public class ScheduleDTO {
     private String day;
-    private Time time;
+    private String timeSchedule;
     private String location;
 }

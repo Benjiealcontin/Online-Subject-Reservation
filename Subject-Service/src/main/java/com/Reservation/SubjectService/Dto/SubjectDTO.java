@@ -13,5 +13,4 @@ public class SubjectDTO {
     private InstructorDTO instructor;
     private List<ScheduleDTO> scheduleList;
     private int availableSlots;
-
 }

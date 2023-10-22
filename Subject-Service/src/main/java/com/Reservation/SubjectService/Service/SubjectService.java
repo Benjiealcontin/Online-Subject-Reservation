@@ -85,7 +85,7 @@ public class SubjectService {
     public List<SubjectDTO> getAllSubjects() {
         List<Subject> subjects = subjectRepository.findAll();
         return subjects.stream()
-                .map(this::convertToDTO)
+                .map(this::convertToSubjectDTO)
                 .collect(Collectors.toList());
     }
 
@@ -96,7 +96,7 @@ public class SubjectService {
 
         Optional<Subject> subjectOptional = subjectRepository.findBySubjectCode(subjectCode);
 
-        return subjectOptional.map(this::convertToDTO);
+        return subjectOptional.map(this::convertToSubjectDTO);
     }
 
 
@@ -137,18 +137,57 @@ public class SubjectService {
             Subject updatedSubject = subjectRepository.save(existingSubject);
 
             // Convert and return the updated SubjectDTO
-            convertToDTO(updatedSubject);
+            convertToSubjectDTO(updatedSubject);
         } catch (Exception e) {
             throw new SubjectUpdateException("Subject Update Failed: " + e.getMessage());
         }
     }
 
-    private SubjectDTO convertToDTO(Subject subject) {
-        return modelMapper.map(subject, SubjectDTO.class);
-    }
+
+
 
     public MessageResponse SubjectFallback(SubjectRequest subjectRequest,Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
         log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
         return new MessageResponse("Subject service is temporarily unavailable. Please try again later.");
+    }
+
+    //
+    //  Instructor Management
+    //
+
+    //Find by Instructor Firstname
+    public Optional<SubjectDTO> getSubjectByInstructorFirstName(String firstname) {
+        subjectRepository.findSubjectByInstructor_Firstname(firstname)
+                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + firstname));
+
+        Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Firstname(firstname);
+
+        return subjectOptional.map(this::convertToSubjectDTO);
+    }
+
+    //Find by Instructor Firstname
+    public Optional<SubjectDTO> getSubjectByInstructorLastname(String lastname) {
+        subjectRepository.findSubjectByInstructor_Lastname(lastname)
+                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + lastname));
+
+        Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Lastname(lastname);
+
+        return subjectOptional.map(this::convertToSubjectDTO);
+    }
+
+    //Find by Instructor Expertise
+    public Optional<SubjectDTO> getSubjectByInstructorExpertise(String expertise) {
+        subjectRepository.findSubjectByInstructor_Expertise(expertise)
+                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with expertise: " + expertise));
+
+        Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Expertise(expertise);
+
+        return subjectOptional.map(this::convertToSubjectDTO);
+    }
+
+
+    //Map the DTO and Entities
+    private SubjectDTO convertToSubjectDTO(Subject subject) {
+        return modelMapper.map(subject, SubjectDTO.class);
     }
 }
