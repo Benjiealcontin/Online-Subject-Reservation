@@ -13,6 +13,7 @@
         <module>Discovery-Service</module>
         <module>Gateway-Service</module>
         <module>Subject-Service</module>
+        <module>User-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
