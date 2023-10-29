@@ -164,6 +164,10 @@ public class SubjectService {
         Subject existingSubject = subjectRepository.findById(id)
                 .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
 
+        if (existingSubject.getAvailableSlots() == 0) {
+            throw new NoAvailableSlotsException("No available slots for subject with id: " + id);
+        }
+
         int updateSlot= existingSubject.getAvailableSlots() - SlotReduction;
 
         existingSubject.setAvailableSlots(updateSlot);
