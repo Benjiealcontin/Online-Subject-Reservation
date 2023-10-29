@@ -4,6 +4,7 @@ import com.Reservation.ReservationService.Dto.MessageResponse;
 import com.Reservation.ReservationService.Dto.ReservationDTO;
 import com.Reservation.ReservationService.Dto.ScheduleDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
+import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
 import com.Reservation.ReservationService.Exception.SubjectNotFoundException;
 import com.Reservation.ReservationService.Repository.ReservationRepository;
 import com.Reservation.ReservationService.Request.ReservationRequest;
@@ -89,6 +90,8 @@ public class ReservationService {
             }
 
             return new MessageResponse("Reservation Successfully!");
+        }catch (WebClientResponseException.Conflict e) {
+            throw new NoAvailableSlotsException(e.getResponseBodyAsString());
         } catch (WebClientResponseException.NotFound e) {
             throw new SubjectNotFoundException(e.getResponseBodyAsString());
         }

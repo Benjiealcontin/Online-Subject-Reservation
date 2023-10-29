@@ -2,6 +2,7 @@ package com.Reservation.SubjectService.Controller;
 
 import com.Reservation.SubjectService.Dto.MessageResponse;
 import com.Reservation.SubjectService.Dto.SubjectDTO;
+import com.Reservation.SubjectService.Exception.NoAvailableSlotsException;
 import com.Reservation.SubjectService.Exception.SubjectAlreadyExistsException;
 import com.Reservation.SubjectService.Exception.SubjectCodeAlreadyExistsException;
 import com.Reservation.SubjectService.Exception.SubjectNotFoundException;
@@ -114,8 +115,10 @@ public class SubjectController {
         try {
             subjectService.UpdateAvailableSlot(id);
             return ResponseEntity.ok("Successfully Slot redacted");
-        } catch (SubjectNotFoundException e) {
+        }catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }  catch (NoAvailableSlotsException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
