@@ -53,10 +53,23 @@ public class SubjectController {
     }
 
     //Find By Subject Code
-    @GetMapping("/subjects/{subjectCode}")
+    @GetMapping("/subjectCode/{subjectCode}")
     public ResponseEntity<?> getSubjectBySubjectCode(@PathVariable String subjectCode) {
         try {
             Optional<SubjectDTO> subject = subjectService.getSubjectBySubjectCode(subjectCode);
+            return ResponseEntity.ok(subject);
+        } catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Find By Subject Name
+    @GetMapping("/subjectName/{subjectName}")
+    public ResponseEntity<?> getSubjectBySubjectName(@PathVariable String subjectName) {
+        try {
+            List<SubjectDTO> subject = subjectService.getSubjectBySubjectName(subjectName);
             return ResponseEntity.ok(subject);
         } catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

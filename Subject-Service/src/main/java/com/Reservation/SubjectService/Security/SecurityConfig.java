@@ -25,7 +25,8 @@ public class SecurityConfig {
                 {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**",
-                            "/subjects/*",
+                            "/subjectCode/*",
+                            "/subjectName/*",
                             "/AllSubjects").permitAll();
                     auth.requestMatchers(HttpMethod.POST,
                             "/create-subject").hasRole(STUDENT);

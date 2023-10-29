@@ -90,7 +90,7 @@ public class SubjectService {
                 .collect(Collectors.toList());
     }
 
-    //Find by Subject Name
+    //Find by Subject Code
     public Optional<SubjectDTO> getSubjectBySubjectCode(String subjectCode) {
         subjectRepository.findBySubjectCode(subjectCode)
                 .orElseThrow(() -> new SubjectNotFoundException("Subject not found with Code: " + subjectCode));
@@ -98,6 +98,19 @@ public class SubjectService {
         Optional<Subject> subjectOptional = subjectRepository.findBySubjectCode(subjectCode);
 
         return subjectOptional.map(this::convertToSubjectDTO);
+    }
+
+    //Find by Subject Name
+    public List<SubjectDTO> getSubjectBySubjectName(String partialName) {
+        List<Subject> subjects = subjectRepository.findBySubjectNameContaining(partialName);
+
+        if (subjects.isEmpty()) {
+            throw new SubjectNotFoundException("No subjects found containing: " + partialName);
+        }
+
+        return subjects.stream()
+                .map(this::convertToSubjectDTO)
+                .collect(Collectors.toList());
     }
 
 
