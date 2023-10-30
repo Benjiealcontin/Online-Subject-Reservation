@@ -5,10 +5,14 @@ import com.Reservation.ReservationService.Dto.ReservationDTO;
 import com.Reservation.ReservationService.Dto.ScheduleDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
+import com.Reservation.ReservationService.Exception.ReservationExistsException;
+import com.Reservation.ReservationService.Exception.ReservationNotFoundException;
 import com.Reservation.ReservationService.Exception.SubjectNotFoundException;
 import com.Reservation.ReservationService.Repository.ReservationRepository;
 import com.Reservation.ReservationService.Request.ReservationRequest;
 import com.google.common.net.HttpHeaders;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -17,6 +21,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@Slf4j
 public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final WebClient.Builder webClientBuilder;
@@ -28,10 +33,15 @@ public class ReservationService {
     }
 
     //Create a Subject Reservation
+    @CircuitBreaker(name = "Reservation", fallbackMethod = "ReservationFallback")
     public MessageResponse reserveSubject(ReservationRequest reservationRequest, String bearerToken, String studentId) {
         String SubjectCode = reservationRequest.getSubjectCode();
         String dayToMatch = reservationRequest.getDay();
         String TimeToMatch = reservationRequest.getTimeSchedule();
+
+        if (reservationRepository.existsBySubjectCodeAndStudentId(SubjectCode, studentId)) {
+            throw new ReservationExistsException("User with the provided username and email already exists.");
+        }
 
         try {
             ReservationDTO reservationDto = webClientBuilder.build()
@@ -64,13 +74,14 @@ public class ReservationService {
                                 .then();
                         result.block();
 
-                        Reservation reservation = new Reservation();
-                        reservation.setDay(day);
-                        reservation.setTimeSchedule(time);
-                        reservation.setLocation(schedule.getLocation());
-                        reservation.setSubjectCode(SubjectCode);
-                        reservation.setStatus("Pending");
-                        reservation.setStudentId(studentId);
+                        Reservation reservation = Reservation.builder()
+                                .day(day)
+                                .timeSchedule(time)
+                                .location(schedule.getLocation())
+                                .subjectCode(SubjectCode)
+                                .studentId(studentId)
+                                .status("Pending")
+                                .build();
 
                         reservationRepository.save(reservation);
                         foundMatchingTime = true;
@@ -90,10 +101,52 @@ public class ReservationService {
             }
 
             return new MessageResponse("Reservation Successfully!");
-        }catch (WebClientResponseException.Conflict e) {
+        } catch (WebClientResponseException.Conflict e) {
             throw new NoAvailableSlotsException(e.getResponseBodyAsString());
-        } catch (WebClientResponseException.NotFound e) {
+        }catch (WebClientResponseException.ServiceUnavailable e) {
+            throw new NoAvailableSlotsException("Subject Service is not available.");
+        }  catch (WebClientResponseException.NotFound e) {
             throw new SubjectNotFoundException(e.getResponseBodyAsString());
         }
+    }
+
+    //Find All Reservation
+    public List<Reservation> getAllReservation() {
+        List<Reservation> reservations = reservationRepository.findAll();
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException("No reservations found");
+        }
+
+        return reservations;
+    }
+
+    //Find All Reservation by Student Id
+    public List<Reservation> getAllReservationByStudentId(String studentId) {
+        List<Reservation> reservations = reservationRepository.findAllByStudentId(studentId);
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException("No reservations found with Id: " + studentId);
+        }
+
+        return reservations;
+    }
+
+    //Find All Reservation by Status
+    public List<Reservation> getAllReservationByStatus(String status) {
+
+        List<Reservation> reservations = reservationRepository.findAllByStatus(status);
+
+        if (reservations.isEmpty()) {
+            throw new ReservationNotFoundException("No reservations found with Status: " + status);
+        }
+
+        return reservations;
+
+    }
+
+    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, String studentId,Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to create reservation. Error: {}", t.getMessage());
+        return new MessageResponse("Reservation service is temporarily unavailable. Please try again later.");
     }
 }

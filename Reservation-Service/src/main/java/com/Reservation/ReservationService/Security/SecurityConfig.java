@@ -25,7 +25,12 @@ public class SecurityConfig {
                 {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**",
-                            "/reservation/subject").permitAll();
+                            "/AllReservation",
+                            "/AllReservationByStudentId/*",
+                            "AllReservationByStatus/*").permitAll();
+            auth.requestMatchers(HttpMethod.POST,
+                    "/reservation/subject").hasRole(STUDENT);
+
                     auth.anyRequest().authenticated();
                 });
 
