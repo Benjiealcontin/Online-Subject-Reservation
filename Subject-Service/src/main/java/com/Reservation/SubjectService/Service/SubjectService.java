@@ -11,7 +11,6 @@ import com.Reservation.SubjectService.Exception.*;
 import com.Reservation.SubjectService.Repository.InstructorRepository;
 import com.Reservation.SubjectService.Repository.ScheduleRepository;
 import com.Reservation.SubjectService.Repository.SubjectRepository;
-import com.Reservation.SubjectService.Request.ReservationRequest;
 import com.Reservation.SubjectService.Request.SubjectRequest;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
@@ -85,15 +84,12 @@ public class SubjectService {
     //Find All Subject
     public List<SubjectDTO> getAllSubjects() {
         List<Subject> subjects = subjectRepository.findAll();
-        return subjects.stream()
-                .map(this::convertToSubjectDTO)
-                .collect(Collectors.toList());
+        return subjects.stream().map(this::convertToSubjectDTO).collect(Collectors.toList());
     }
 
     //Find by Subject Code
     public Optional<SubjectDTO> getSubjectBySubjectCode(String subjectCode) {
-        subjectRepository.findBySubjectCode(subjectCode)
-                .orElseThrow(() -> new SubjectNotFoundException("Subject not found with Code: " + subjectCode));
+        subjectRepository.findBySubjectCode(subjectCode).orElseThrow(() -> new SubjectNotFoundException("Subject not found with Code: " + subjectCode));
 
         Optional<Subject> subjectOptional = subjectRepository.findBySubjectCode(subjectCode);
 
@@ -108,9 +104,7 @@ public class SubjectService {
             throw new SubjectNotFoundException("No subjects found containing: " + partialName);
         }
 
-        return subjects.stream()
-                .map(this::convertToSubjectDTO)
-                .collect(Collectors.toList());
+        return subjects.stream().map(this::convertToSubjectDTO).collect(Collectors.toList());
     }
 
 
@@ -125,8 +119,7 @@ public class SubjectService {
     //Update Subject
     @CircuitBreaker(name = "Subject", fallbackMethod = "SubjectFallback")
     public void updateSubjectDetailsWithOtherEntities(Long id, SubjectDTO updatedSubjectDTO) {
-        Subject existingSubject = subjectRepository.findById(id)
-                .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+        Subject existingSubject = subjectRepository.findById(id).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
         try {
             // Update the fields of the existing Subject entity
             BeanUtils.copyProperties(updatedSubjectDTO, existingSubject, "id");
@@ -158,17 +151,16 @@ public class SubjectService {
     }
 
     //Update Available Slot
-    public void UpdateAvailableSlot(Long id){
+    public void UpdateAvailableSlot(Long id) {
         int SlotReduction = 1;
 
-        Subject existingSubject = subjectRepository.findById(id)
-                .orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+        Subject existingSubject = subjectRepository.findById(id).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
 
         if (existingSubject.getAvailableSlots() == 0) {
             throw new NoAvailableSlotsException("No available slots for subject with id: " + id);
         }
 
-        int updateSlot= existingSubject.getAvailableSlots() - SlotReduction;
+        int updateSlot = existingSubject.getAvailableSlots() - SlotReduction;
 
         existingSubject.setAvailableSlots(updateSlot);
 
@@ -182,8 +174,7 @@ public class SubjectService {
 
     //Find by Instructor Firstname
     public Optional<SubjectDTO> getSubjectByInstructorFirstName(String firstname) {
-        subjectRepository.findSubjectByInstructor_Firstname(firstname)
-                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + firstname));
+        subjectRepository.findSubjectByInstructor_Firstname(firstname).orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + firstname));
 
         Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Firstname(firstname);
 
@@ -192,8 +183,7 @@ public class SubjectService {
 
     //Find by Instructor Firstname
     public Optional<SubjectDTO> getSubjectByInstructorLastname(String lastname) {
-        subjectRepository.findSubjectByInstructor_Lastname(lastname)
-                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + lastname));
+        subjectRepository.findSubjectByInstructor_Lastname(lastname).orElseThrow(() -> new SubjectNotFoundException("Instructor not found with name: " + lastname));
 
         Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Lastname(lastname);
 
@@ -202,8 +192,7 @@ public class SubjectService {
 
     //Find by Instructor Expertise
     public Optional<SubjectDTO> getSubjectByInstructorExpertise(String expertise) {
-        subjectRepository.findSubjectByInstructor_Expertise(expertise)
-                .orElseThrow(() -> new SubjectNotFoundException("Instructor not found with expertise: " + expertise));
+        subjectRepository.findSubjectByInstructor_Expertise(expertise).orElseThrow(() -> new SubjectNotFoundException("Instructor not found with expertise: " + expertise));
 
         Optional<Subject> subjectOptional = subjectRepository.findSubjectByInstructor_Expertise(expertise);
 
@@ -216,8 +205,8 @@ public class SubjectService {
         return modelMapper.map(subject, SubjectDTO.class);
     }
 
-    public MessageResponse SubjectFallback(SubjectRequest subjectRequest,Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
-        log.warn("Circuit breaker fallback: Unable to create product. Error: {}", t.getMessage());
+    public MessageResponse SubjectFallback(SubjectRequest subjectRequest, Long id, SubjectDTO updatedSubjectDTO, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to create subject. Error: {}", t.getMessage());
         return new MessageResponse("Subject service is temporarily unavailable. Please try again later.");
     }
 }
