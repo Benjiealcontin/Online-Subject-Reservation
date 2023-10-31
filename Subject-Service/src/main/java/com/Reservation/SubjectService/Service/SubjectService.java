@@ -119,7 +119,7 @@ public class SubjectService {
     //Update Subject
     @CircuitBreaker(name = "Subject", fallbackMethod = "SubjectFallback")
     public void updateSubjectDetailsWithOtherEntities(Long id, SubjectDTO updatedSubjectDTO) {
-        Subject existingSubject = subjectRepository.findById(id).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+        Subject existingSubject = subjectRepository.findById(id).orElseThrow(() -> new SubjectNotFoundException("Subject with ID " + id + " not found."));
         try {
             // Update the fields of the existing Subject entity
             BeanUtils.copyProperties(updatedSubjectDTO, existingSubject, "id");
