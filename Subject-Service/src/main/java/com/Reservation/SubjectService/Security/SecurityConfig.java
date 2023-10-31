@@ -25,15 +25,20 @@ public class SecurityConfig {
                 {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**",
-                            "/subjectCode/*",
-                            "/subjectName/*",
-                            "/AllSubjects").permitAll();
+                            "api/subject/subjectCode/*",
+                            "api/subject/subjectName/*",
+                            "api/subject/AllSubjects",
+                            "api/subject/instructor/firstname/*",
+                            "api/subject/instructor/lastname/*",
+                            "api/subject/instructor/expertise/*").permitAll();
                     auth.requestMatchers(HttpMethod.POST,
-                            "/create-subject").hasRole(STUDENT);
+                            "api/subject/create-subject").hasRole(STUDENT);
                     auth.requestMatchers(HttpMethod.DELETE,
-                            "/delete/*").hasRole(ADMIN);
+                            "api/subject/delete/*").hasRole(ADMIN);
                     auth.requestMatchers(HttpMethod.PUT,
-                            "/update/*").hasRole(ADMIN);
+                            "api/subject/slot/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.PUT,
+                            "api/subject/update/*").hasRole(ADMIN);
                     auth.anyRequest().authenticated();
                 });
 

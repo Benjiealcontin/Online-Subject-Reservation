@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class ApproveService {
-    public final String RESERVATION_URI = "http://Reservation-Service/api/reservation";
     private final ApproveRepository approveRepository;
     private final WebClient.Builder webClientBuilder;
 
@@ -23,6 +22,9 @@ public class ApproveService {
         this.approveRepository = approveRepository;
         this.webClientBuilder = webClientBuilder;
     }
+
+    public final String RESERVATION_URI = "http://Reservation-Service/api/reservation";
+    public final String SUBJECT_URI = "http://Subject-Service/api/subject";
 
     //Approve Reservation
     public MessageResponse approveReservation(Long id, String bearerToken) {
@@ -49,6 +51,15 @@ public class ApproveService {
                     .toBodilessEntity()
                     .then();
             result.block();
+
+            Mono<Void> result2 = webClientBuilder.build()
+                    .put()
+                    .uri(SUBJECT_URI + "/slot/{subjectCode}", reservation.getSubjectCode())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .then();
+            result2.block();
 
             approveRepository.save(approve);
 

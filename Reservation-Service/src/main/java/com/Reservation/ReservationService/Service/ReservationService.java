@@ -65,16 +65,6 @@ public class ReservationService {
 
                 if (dayToMatch.equals(day)) {
                     if (TimeToMatch.equals(time)) {
-
-                        Mono<Void> result = webClientBuilder.build()
-                                .put()
-                                .uri(SUBJECT_URL + "/slot/{id}", reservationDto.getId())
-                                .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                                .retrieve()
-                                .toBodilessEntity()
-                                .then();
-                        result.block();
-
                         Reservation reservation = Reservation.builder()
                                 .day(day)
                                 .timeSchedule(time)

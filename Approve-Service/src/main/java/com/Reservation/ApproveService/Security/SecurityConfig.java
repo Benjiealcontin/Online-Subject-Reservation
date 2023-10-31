@@ -1,4 +1,4 @@
-package com.Reservation.ReservationService.Security;
+package com.Reservation.ApproveService.Security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -13,9 +13,10 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    private final JwtAuthConverter jwtAuthConverter;
+
     public static final String ADMIN = "client_admin";
     public static final String STUDENT = "client_student";
-    private final JwtAuthConverter jwtAuthConverter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -24,18 +25,8 @@ public class SecurityConfig {
                 {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,
-                            "api/reservationAllReservationByStatus/*",
-                            "api/reservation/AllReservation",
-                            "api/reservation/getReservation/*").hasRole(ADMIN);
-                    auth.requestMatchers(HttpMethod.GET,
-                            "api/reservation/AllReservationByStudentId/*").hasRole(STUDENT);
-                    auth.requestMatchers(HttpMethod.POST,
-                            "api/reservation/reservation/subject").hasRole(STUDENT);
-                    auth.requestMatchers(HttpMethod.DELETE,
-                            "api/reservation/delete/*").hasRole(STUDENT);
-                    auth.requestMatchers(HttpMethod.PUT,
-                            "api/reservation/approve-reservation/*").hasRole(ADMIN);
+                   auth.requestMatchers(HttpMethod.POST,
+                    "api/approve/approve-reservation/*").hasRole(ADMIN);
 
                     auth.anyRequest().authenticated();
                 });
