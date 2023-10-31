@@ -110,10 +110,10 @@ public class SubjectController {
     }
 
     //Update Available Slot
-    @PutMapping("/slot/{id}")
-    public ResponseEntity<?> UpdateAvailableSlot(@PathVariable Long id) {
+    @PutMapping("/slot/{subjectCode}")
+    public ResponseEntity<?> UpdateAvailableSlot(@PathVariable String subjectCode) {
         try {
-            subjectService.UpdateAvailableSlot(id);
+            subjectService.UpdateAvailableSlot(subjectCode);
             return ResponseEntity.ok("Successfully Slot redacted");
         }catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

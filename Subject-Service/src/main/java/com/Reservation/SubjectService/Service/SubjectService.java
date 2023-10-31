@@ -151,13 +151,13 @@ public class SubjectService {
     }
 
     //Update Available Slot
-    public void UpdateAvailableSlot(Long id) {
+    public void UpdateAvailableSlot(String subjectCode) {
         int SlotReduction = 1;
 
-        Subject existingSubject = subjectRepository.findById(id).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+        Subject existingSubject = subjectRepository.findBySubjectCode(subjectCode).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
 
         if (existingSubject.getAvailableSlots() == 0) {
-            throw new NoAvailableSlotsException("No available slots for subject with id: " + id);
+            throw new NoAvailableSlotsException("No available slots for subject with subject code: " + subjectCode);
         }
 
         int updateSlot = existingSubject.getAvailableSlots() - SlotReduction;
