@@ -14,6 +14,7 @@
         <module>Gateway-Service</module>
         <module>Subject-Service</module>
         <module>User-Service</module>
+        <module>Approve-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
