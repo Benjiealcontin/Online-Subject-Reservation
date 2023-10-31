@@ -1,7 +1,7 @@
 package com.Reservation.ReservationService.Service;
 
 import com.Reservation.ReservationService.Dto.MessageResponse;
-import com.Reservation.ReservationService.Dto.ReservationDTO;
+import com.Reservation.ReservationService.Dto.SubjectDTO;
 import com.Reservation.ReservationService.Dto.ScheduleDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
@@ -19,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -44,12 +45,12 @@ public class ReservationService {
         }
 
         try {
-            ReservationDTO reservationDto = webClientBuilder.build()
+            SubjectDTO reservationDto = webClientBuilder.build()
                     .get()
                     .uri(SUBJECT_URL + "/subjectCode/{subjectCode}", SubjectCode)
                     .header(HttpHeaders.AUTHORIZATION, bearerToken)
                     .retrieve()
-                    .bodyToMono(ReservationDTO.class)
+                    .bodyToMono(SubjectDTO.class)
                     .block();
 
             assert reservationDto != null;
@@ -103,13 +104,24 @@ public class ReservationService {
             return new MessageResponse("Reservation Successfully!");
         } catch (WebClientResponseException.Conflict e) {
             throw new NoAvailableSlotsException(e.getResponseBodyAsString());
-        }catch (WebClientResponseException.ServiceUnavailable e) {
+        } catch (WebClientResponseException.ServiceUnavailable e) {
             throw new NoAvailableSlotsException("Subject Service is not available.");
-        }  catch (WebClientResponseException.NotFound e) {
+        } catch (WebClientResponseException.NotFound e) {
             throw new SubjectNotFoundException(e.getResponseBodyAsString());
         }
     }
 
+    //Find By ID
+    public Optional<Reservation> getReservationById(Long id){
+        Optional<Reservation> reservation = reservationRepository.findById(id);
+
+        if (reservation.isEmpty()) {
+            throw new ReservationNotFoundException("No reservations found with Id: " + id);
+        }
+
+        return reservation;
+
+    }
     //Find All Reservation
     public List<Reservation> getAllReservation() {
         List<Reservation> reservations = reservationRepository.findAll();
@@ -121,7 +133,7 @@ public class ReservationService {
         return reservations;
     }
 
-    //Find All Reservation by Student Id
+    //Find All Reservation by Student ID
     public List<Reservation> getAllReservationByStudentId(String studentId) {
         List<Reservation> reservations = reservationRepository.findAllByStudentId(studentId);
 
@@ -145,7 +157,15 @@ public class ReservationService {
 
     }
 
-    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, String studentId,Throwable t) {
+    //Delete Reservation
+    public void cancelReservation(Long id) {
+        if (!reservationRepository.existsById(id)) {
+            throw new ReservationNotFoundException("Reservation with ID " + id + " not found.");
+        }
+        reservationRepository.deleteById(id);
+    }
+
+    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, String studentId, Throwable t) {
         log.warn("Circuit breaker fallback: Unable to create reservation. Error: {}", t.getMessage());
         return new MessageResponse("Reservation service is temporarily unavailable. Please try again later.");
     }

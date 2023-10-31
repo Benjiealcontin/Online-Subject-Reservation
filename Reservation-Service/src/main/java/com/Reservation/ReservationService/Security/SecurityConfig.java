@@ -28,8 +28,12 @@ public class SecurityConfig {
                             "/AllReservation",
                             "/AllReservationByStudentId/*",
                             "AllReservationByStatus/*").permitAll();
-            auth.requestMatchers(HttpMethod.POST,
+                   auth.requestMatchers(HttpMethod.POST,
                     "/reservation/subject").hasRole(STUDENT);
+                   auth.requestMatchers(HttpMethod.DELETE,
+                            "/delete/*").hasRole(STUDENT);
+                   auth.requestMatchers(HttpMethod.PUT,
+                            "/approve-reservation/*").hasRole(ADMIN);
 
                     auth.anyRequest().authenticated();
                 });

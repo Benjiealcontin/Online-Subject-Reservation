@@ -1,6 +1,6 @@
 package com.Reservation.ReservationService.Controller;
 
-import com.Reservation.ReservationService.Dto.ReservationDTO;
+import com.Reservation.ReservationService.Dto.MessageResponse;
 import com.Reservation.ReservationService.Dto.UserTokenDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
@@ -45,11 +45,22 @@ public class ReservationController {
         }
     }
 
+    //Find By ID
+    @GetMapping("/getReservation/{id}")
+    public ResponseEntity<?> getReservationById(@PathVariable Long id){
+        try {
+            return ResponseEntity.ok(reservationService.getReservationById(id));
+        }catch (ReservationNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
     //Find All Reservation
     @GetMapping("/AllReservation")
-    public ResponseEntity<?> findAllReservation(){
-        try{
-            List<Reservation> reservation =  reservationService.getAllReservation();
+    public ResponseEntity<?> findAllReservation() {
+        try {
+            List<Reservation> reservation = reservationService.getAllReservation();
             return ResponseEntity.ok(reservation);
         } catch (ReservationNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -60,9 +71,9 @@ public class ReservationController {
 
     //Find All Reservation By Student ID
     @GetMapping("/AllReservationByStudentId/{studentId}")
-    public ResponseEntity<?> findAllReservationByStudentId(@PathVariable String studentId){
-        try{
-            List<Reservation> reservation =  reservationService.getAllReservationByStudentId(studentId);
+    public ResponseEntity<?> findAllReservationByStudentId(@PathVariable String studentId) {
+        try {
+            List<Reservation> reservation = reservationService.getAllReservationByStudentId(studentId);
             return ResponseEntity.ok(reservation);
         } catch (ReservationNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -73,10 +84,23 @@ public class ReservationController {
 
     //Find All Reservation By Student Status
     @GetMapping("/AllReservationByStatus/{status}")
-    public ResponseEntity<?> findAllReservationByStatus(@PathVariable String status){
-        try{
-            List<Reservation> reservation =  reservationService.getAllReservationByStatus(status);
+    public ResponseEntity<?> findAllReservationByStatus(@PathVariable String status) {
+        try {
+            List<Reservation> reservation = reservationService.getAllReservationByStatus(status);
             return ResponseEntity.ok(reservation);
+        } catch (ReservationNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Delete Reservation
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> cancelReservation(@PathVariable Long id) {
+        try {
+            reservationService.cancelReservation(id);
+            return ResponseEntity.ok(new MessageResponse("Delete Successfully!"));
         } catch (ReservationNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
