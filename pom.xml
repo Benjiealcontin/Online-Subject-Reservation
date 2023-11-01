@@ -15,6 +15,7 @@
         <module>Subject-Service</module>
         <module>User-Service</module>
         <module>Approve-Service</module>
+        <module>Notification-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
