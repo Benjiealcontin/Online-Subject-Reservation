@@ -19,6 +19,7 @@ public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String transactionId;
     private String subjectCode;
     private String studentId;
     private String day;

@@ -13,24 +13,27 @@ import com.Reservation.ReservationService.Request.ReservationRequest;
 import com.google.common.net.HttpHeaders;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
 public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String,Object> kafkaTemplate;
     String SUBJECT_URL = "http://Subject-Service/api/subject";
 
-    public ReservationService(ReservationRepository reservationRepository, WebClient.Builder webClientBuilder) {
+    public ReservationService(ReservationRepository reservationRepository, WebClient.Builder webClientBuilder, KafkaTemplate<String, Object> kafkaTemplate) {
         this.reservationRepository = reservationRepository;
         this.webClientBuilder = webClientBuilder;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     //Create a Subject Reservation
@@ -39,6 +42,7 @@ public class ReservationService {
         String SubjectCode = reservationRequest.getSubjectCode();
         String dayToMatch = reservationRequest.getDay();
         String TimeToMatch = reservationRequest.getTimeSchedule();
+        String transactionId = generateTransactionId();
 
         if (reservationRepository.existsBySubjectCodeAndStudentId(SubjectCode, studentId)) {
             throw new ReservationExistsException("User with the provided username and email already exists.");
@@ -72,6 +76,7 @@ public class ReservationService {
                                 .subjectCode(SubjectCode)
                                 .studentId(studentId)
                                 .status("Pending")
+                                .transactionId(transactionId)
                                 .build();
 
                         reservationRepository.save(reservation);
@@ -99,6 +104,16 @@ public class ReservationService {
         } catch (WebClientResponseException.NotFound e) {
             throw new SubjectNotFoundException(e.getResponseBodyAsString());
         }
+    }
+
+    //Transaction ID Generator
+    private String generateTransactionId() {
+        return UUID.randomUUID().toString();
+    }
+
+    //Reservation Notification
+    public void reservationNotification(ReservationRequest reservationRequest){
+
     }
 
     //Find By ID
