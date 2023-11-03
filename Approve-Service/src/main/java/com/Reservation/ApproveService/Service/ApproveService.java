@@ -8,23 +8,32 @@ import com.Reservation.ApproveService.Exception.ApproveNotFoundException;
 import com.Reservation.ApproveService.Exception.ReservationNotFoundException;
 import com.Reservation.ApproveService.Repository.ApproveRepository;
 import com.google.common.net.HttpHeaders;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.BeanUtils;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
+@Slf4j
 public class ApproveService {
     private final ApproveRepository approveRepository;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public ApproveService(ApproveRepository approveRepository, WebClient.Builder webClientBuilder) {
+    public ApproveService(ApproveRepository approveRepository, WebClient.Builder webClientBuilder, KafkaTemplate<String, Object> kafkaTemplate) {
         this.approveRepository = approveRepository;
         this.webClientBuilder = webClientBuilder;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public final String RESERVATION_URI = "http://Reservation-Service/api/reservation";
@@ -46,6 +55,8 @@ public class ApproveService {
 
             BeanUtils.copyProperties(reservation, approve);
             approve.setStatus("Confirmed");
+            approve.setApprovedAt(LocalDateTime.now());
+
 
             Mono<Void> result = webClientBuilder.build()
                     .delete()
@@ -67,10 +78,26 @@ public class ApproveService {
 
             approveRepository.save(approve);
 
+            approveNotification(approve);
+
             return new MessageResponse("Approve Successfully.");
         } catch (WebClientResponseException.NotFound e) {
             throw new ReservationNotFoundException(e.getResponseBodyAsString());
         }
+    }
+
+    //Approve Notification
+    public void approveNotification(Approve approve) {
+        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", approve.getStudentId());
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                RecordMetadata metadata = result.getRecordMetadata();
+                log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                        approve.getStudentId(), approve, metadata.partition(), metadata.offset());
+            } else {
+                log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", approve.getStudentId(), approve, ex.getMessage());
+            }
+        });
     }
 
     //Find Approve By ID

@@ -15,9 +15,10 @@ public class TokenDecodeService {
         return bearerToken.substring(7);
     }
 
-    public UserTokenDTO decodeToken(String token){
+    public UserTokenDTO decodeToken(String token) {
         DecodedJWT decodedJWT = JWT.decode(token);
         String sub = decodedJWT.getSubject();
-        return new UserTokenDTO(sub);
+        String email = decodedJWT.getClaim("email").asString();
+        return new UserTokenDTO(sub, email);
     }
 }

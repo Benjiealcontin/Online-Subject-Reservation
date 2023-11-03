@@ -73,7 +73,7 @@ public class ApproveController {
     }
 
     //Find Approve by Subject Code
-    @GetMapping("/getByStudentId/{studentId}")
+    @GetMapping("/getBySubjectCode/{studentId}")
     public ResponseEntity<?> findApproveBySubjectCode(@PathVariable String subjectCode){
         try {
             List<Approve> approveList = approveService.getApproveOfStudentBySubjectCode(subjectCode);

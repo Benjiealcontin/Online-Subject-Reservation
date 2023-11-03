@@ -22,6 +22,7 @@ public class Reservation {
     private String transactionId;
     private String subjectCode;
     private String studentId;
+    private String email;
     private String day;
     private String timeSchedule;
     private String location;

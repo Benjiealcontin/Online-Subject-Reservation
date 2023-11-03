@@ -33,7 +33,7 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.POST,
                             "api/reservation/reservation/subject").hasRole(STUDENT);
                     auth.requestMatchers(HttpMethod.DELETE,
-                            "api/reservation/delete/*").hasRole(STUDENT);
+                            "api/reservation/delete/*").hasRole(ADMIN);
                     auth.requestMatchers(HttpMethod.PUT,
                             "api/reservation/approve-reservation/*").hasRole(ADMIN);
 

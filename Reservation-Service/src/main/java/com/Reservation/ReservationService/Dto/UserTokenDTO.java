@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserTokenDTO {
     private String sub;
+    private String email;
 }

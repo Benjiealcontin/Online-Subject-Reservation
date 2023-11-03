@@ -4,6 +4,7 @@ import com.Reservation.ReservationService.Dto.MessageResponse;
 import com.Reservation.ReservationService.Dto.UserTokenDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
+import com.Reservation.ReservationService.Exception.ReservationExistsException;
 import com.Reservation.ReservationService.Exception.ReservationNotFoundException;
 import com.Reservation.ReservationService.Exception.SubjectNotFoundException;
 import com.Reservation.ReservationService.Request.ReservationRequest;
@@ -33,12 +34,11 @@ public class ReservationController {
         try {
             String token = tokenDecodeService.extractToken(bearerToken);
             UserTokenDTO userTokenDTO = tokenDecodeService.decodeToken(token);
-            String studentId = userTokenDTO.getSub();
 
-            return ResponseEntity.ok(reservationService.reserveSubject(reservationRequest, bearerToken, studentId));
+            return ResponseEntity.ok(reservationService.reserveSubject(reservationRequest, bearerToken, userTokenDTO));
         } catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (NoAvailableSlotsException e) {
+        } catch (NoAvailableSlotsException | ReservationExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
@@ -47,15 +47,16 @@ public class ReservationController {
 
     //Find By ID
     @GetMapping("/getReservation/{id}")
-    public ResponseEntity<?> getReservationById(@PathVariable Long id){
+    public ResponseEntity<?> getReservationById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(reservationService.getReservationById(id));
-        }catch (ReservationNotFoundException e) {
+        } catch (ReservationNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
+
     //Find All Reservation
     @GetMapping("/AllReservation")
     public ResponseEntity<?> findAllReservation() {
@@ -95,7 +96,7 @@ public class ReservationController {
         }
     }
 
-    //Delete Reservation
+    //Delete Reservation for Admin
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> cancelReservation(@PathVariable Long id) {
         try {
@@ -107,4 +108,6 @@ public class ReservationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
+
+    //TODO delete for student
 }

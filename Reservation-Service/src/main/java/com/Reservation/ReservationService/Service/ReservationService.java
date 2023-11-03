@@ -1,8 +1,9 @@
 package com.Reservation.ReservationService.Service;
 
 import com.Reservation.ReservationService.Dto.MessageResponse;
-import com.Reservation.ReservationService.Dto.SubjectDTO;
 import com.Reservation.ReservationService.Dto.ScheduleDTO;
+import com.Reservation.ReservationService.Dto.SubjectDTO;
+import com.Reservation.ReservationService.Dto.UserTokenDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
 import com.Reservation.ReservationService.Exception.ReservationExistsException;
@@ -13,7 +14,9 @@ import com.Reservation.ReservationService.Request.ReservationRequest;
 import com.google.common.net.HttpHeaders;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -21,13 +24,14 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
 public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final WebClient.Builder webClientBuilder;
-    private final KafkaTemplate<String,Object> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     String SUBJECT_URL = "http://Subject-Service/api/subject";
 
     public ReservationService(ReservationRepository reservationRepository, WebClient.Builder webClientBuilder, KafkaTemplate<String, Object> kafkaTemplate) {
@@ -38,14 +42,14 @@ public class ReservationService {
 
     //Create a Subject Reservation
     @CircuitBreaker(name = "Reservation", fallbackMethod = "ReservationFallback")
-    public MessageResponse reserveSubject(ReservationRequest reservationRequest, String bearerToken, String studentId) {
+    public MessageResponse reserveSubject(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO) {
         String SubjectCode = reservationRequest.getSubjectCode();
         String dayToMatch = reservationRequest.getDay();
         String TimeToMatch = reservationRequest.getTimeSchedule();
         String transactionId = generateTransactionId();
 
-        if (reservationRepository.existsBySubjectCodeAndStudentId(SubjectCode, studentId)) {
-            throw new ReservationExistsException("User with the provided username and email already exists.");
+        if (reservationRepository.existsBySubjectCodeAndStudentId(SubjectCode, userTokenDTO.getSub())) {
+            throw new ReservationExistsException("You already reserve the Subject.");
         }
 
         try {
@@ -74,12 +78,15 @@ public class ReservationService {
                                 .timeSchedule(time)
                                 .location(schedule.getLocation())
                                 .subjectCode(SubjectCode)
-                                .studentId(studentId)
+                                .studentId(userTokenDTO.getSub())
+                                .email(userTokenDTO.getEmail())
                                 .status("Pending")
                                 .transactionId(transactionId)
                                 .build();
 
                         reservationRepository.save(reservation);
+
+                        reservationNotification(reservation, userTokenDTO);
                         foundMatchingTime = true;
                     }
                     foundMatchingDay = true;
@@ -112,12 +119,21 @@ public class ReservationService {
     }
 
     //Reservation Notification
-    public void reservationNotification(ReservationRequest reservationRequest){
-
+    public void reservationNotification(Reservation reservation, UserTokenDTO userTokenDTO) {
+        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", userTokenDTO.getSub());
+        future.whenComplete((result, ex) -> {
+            if (ex == null) {
+                RecordMetadata metadata = result.getRecordMetadata();
+                log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                        userTokenDTO.getSub(), reservation, metadata.partition(), metadata.offset());
+            } else {
+                log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenDTO.getSub(), reservation, ex.getMessage());
+            }
+        });
     }
 
     //Find By ID
-    public Optional<Reservation> getReservationById(Long id){
+    public Optional<Reservation> getReservationById(Long id) {
         Optional<Reservation> reservation = reservationRepository.findById(id);
 
         if (reservation.isEmpty()) {
@@ -127,6 +143,7 @@ public class ReservationService {
         return reservation;
 
     }
+
     //Find All Reservation
     public List<Reservation> getAllReservation() {
         List<Reservation> reservations = reservationRepository.findAll();
@@ -170,7 +187,7 @@ public class ReservationService {
         reservationRepository.deleteById(id);
     }
 
-    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, String studentId, Throwable t) {
+    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Throwable t) {
         log.warn("Circuit breaker fallback: Unable to create reservation. Error: {}", t.getMessage());
         return new MessageResponse("Reservation service is temporarily unavailable. Please try again later.");
     }
