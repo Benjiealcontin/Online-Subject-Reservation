@@ -11,6 +11,8 @@ import com.Reservation.ReservationService.Exception.ReservationNotFoundException
 import com.Reservation.ReservationService.Exception.SubjectNotFoundException;
 import com.Reservation.ReservationService.Repository.ReservationRepository;
 import com.Reservation.ReservationService.Request.ReservationRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +54,8 @@ public class ReservationService {
             throw new ReservationExistsException("You already reserve the Subject.");
         }
 
+        //TODO check if the subject that reserve is already approve or not
+
         try {
             SubjectDTO reservationDto = webClientBuilder.build()
                     .get()
@@ -84,9 +88,9 @@ public class ReservationService {
                                 .transactionId(transactionId)
                                 .build();
 
-                        reservationRepository.save(reservation);
-
                         reservationNotification(reservation, userTokenDTO);
+
+                        reservationRepository.save(reservation);
                         foundMatchingTime = true;
                     }
                     foundMatchingDay = true;
@@ -120,16 +124,27 @@ public class ReservationService {
 
     //Reservation Notification
     public void reservationNotification(Reservation reservation, UserTokenDTO userTokenDTO) {
-        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", userTokenDTO.getSub());
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                RecordMetadata metadata = result.getRecordMetadata();
-                log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
-                        userTokenDTO.getSub(), reservation, metadata.partition(), metadata.offset());
-            } else {
-                log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenDTO.getSub(), reservation, ex.getMessage());
-            }
-        });
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            String jsonMessage = objectMapper.writeValueAsString(reservation);
+
+
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", userTokenDTO.getSub(), jsonMessage);
+
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            userTokenDTO.getSub(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenDTO.getSub(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
     }
 
     //Find By ID

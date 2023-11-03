@@ -86,6 +86,8 @@ public class ApproveService {
         }
     }
 
+    //TODO Not Approve Function
+
     //Approve Notification
     public void approveNotification(Approve approve) {
         CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", approve.getStudentId());
