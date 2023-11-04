@@ -127,7 +127,7 @@ public class ApproveService {
 
             approveNotification(approve);
 
-            return new MessageResponse("Approve Successfully.");
+            return new MessageResponse("Not Approve Successfully.");
         } catch (WebClientResponseException.NotFound e) {
             throw new ReservationNotFoundException(e.getResponseBodyAsString());
         }
@@ -158,7 +158,7 @@ public class ApproveService {
         return approve;
     }
 
-    //Find All Approve
+    //Find All
     public List<Approve> getAllApprove(){
         List<Approve> approveList = approveRepository.findAll();
 
@@ -169,9 +169,32 @@ public class ApproveService {
         return approveList;
     }
 
+
+    //Find All Approve
+    public List<Approve> getAllApproveByConfirmed(){
+        List<Approve> approveList = approveRepository.findAllByStatus("Confirmed");
+
+        if (approveList.isEmpty()) {
+            throw new ApproveNotFoundException("No approves found");
+        }
+
+        return approveList;
+    }
+
+    //Find All Not Approve
+    public List<Approve> getAllNotApprove(){
+        List<Approve> approveList = approveRepository.findAllByStatus("Denied");
+
+        if (approveList.isEmpty()) {
+            throw new ApproveNotFoundException("No denied approves found");
+        }
+
+        return approveList;
+    }
+
     //Find All Approve of student by StudentId
     public List<Approve> getApproveByStudentId(String studentId){
-        List<Approve> approveList = approveRepository.findAllByStudentId(studentId);
+        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId,"Confirmed");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Approve with Student ID " + studentId + " not found.");
@@ -180,9 +203,20 @@ public class ApproveService {
         return  approveList;
     }
 
+    //Find All Not Approve of student by StudentId
+    public List<Approve> getNotApproveByStudentId(String studentId){
+        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId,"Denied");
+
+        if (approveList.isEmpty()) {
+            throw new ApproveNotFoundException("Not Approve with Student ID " + studentId + " not found.");
+        }
+
+        return  approveList;
+    }
+
     //Find All Approve of student by subject code
     public List<Approve> getApproveOfStudentBySubjectCode(String subjectCode){
-        List<Approve> approveList = approveRepository.findAllBySubjectCode(subjectCode);
+        List<Approve> approveList = approveRepository.findAllBySubjectCodeAndStatus(subjectCode, "Confirmed");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Approve with Subject Code " + subjectCode + " not found.");
@@ -191,7 +225,18 @@ public class ApproveService {
         return  approveList;
     }
 
-    //Delete approve
+    //Find All Not Approve of student by subject code
+    public List<Approve> getNotApproveOfStudentBySubjectCode(String subjectCode){
+        List<Approve> approveList = approveRepository.findAllBySubjectCodeAndStatus(subjectCode,"Denied");
+
+        if (approveList.isEmpty()) {
+            throw new ApproveNotFoundException("Not Approve with Subject Code " + subjectCode + " not found.");
+        }
+
+        return  approveList;
+    }
+
+    //Delete approve and not approve
     public void deleteApproveById(Long id){
         if (!approveRepository.existsById(id)) {
             throw new ApproveNotFoundException("Approve with ID " + id + " not found.");

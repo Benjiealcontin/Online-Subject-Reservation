@@ -28,6 +28,18 @@ public class SecurityConfig {
                    auth.requestMatchers(HttpMethod.POST,
                     "api/approve/approve-reservation/*",
                            "api/approve/not-approve-reservation/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.GET,
+                            "api/approve/all",
+                            "api/approve/allConfirmed",
+                            "api/approve/allDenied",
+                            "api/approve/getById/*",
+                            "api/approve/getApproveBySubjectCode/*",
+                            "api/approve/getNotApproveBySubjectCode/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.GET,
+                            "api/approve/getApproveOfStudent",
+                            "api/approve/getNotApproveOfStudent").hasRole(STUDENT);
+                    auth.requestMatchers(HttpMethod.DELETE,
+                            "api/approve/delete/*").hasRole(ADMIN);
 
                     auth.anyRequest().authenticated();
                 });
