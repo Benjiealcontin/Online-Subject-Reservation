@@ -26,7 +26,8 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET,
                             "/actuator/**").permitAll();
                    auth.requestMatchers(HttpMethod.POST,
-                    "api/approve/approve-reservation/*").hasRole(ADMIN);
+                    "api/approve/approve-reservation/*",
+                           "api/approve/not-approve-reservation/*").hasRole(ADMIN);
 
                     auth.anyRequest().authenticated();
                 });

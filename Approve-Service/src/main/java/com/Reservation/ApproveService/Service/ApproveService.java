@@ -86,7 +86,52 @@ public class ApproveService {
         }
     }
 
-    //TODO Not Approve Function
+    //Not Approve Reservation
+    public MessageResponse notApproveReservation(Long id, String bearerToken) {
+        try {
+            ReservationDTO reservation = webClientBuilder.build()
+                    .get()
+                    .uri(RESERVATION_URI + "/getReservation/{id}", id)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .bodyToMono(ReservationDTO.class)
+                    .block();
+
+            assert reservation != null;
+            Approve approve = new Approve();
+
+            BeanUtils.copyProperties(reservation, approve);
+            approve.setStatus("Denied");
+            approve.setApprovedAt(LocalDateTime.now());
+
+
+            Mono<Void> result = webClientBuilder.build()
+                    .delete()
+                    .uri(RESERVATION_URI + "/delete/{id}", reservation.getId())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .then();
+            result.block();
+
+            Mono<Void> result2 = webClientBuilder.build()
+                    .put()
+                    .uri(SUBJECT_URI + "/slot/{subjectCode}", reservation.getSubjectCode())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .then();
+            result2.block();
+
+            approveRepository.save(approve);
+
+            approveNotification(approve);
+
+            return new MessageResponse("Approve Successfully.");
+        } catch (WebClientResponseException.NotFound e) {
+            throw new ReservationNotFoundException(e.getResponseBodyAsString());
+        }
+    }
 
     //Approve Notification
     public void approveNotification(Approve approve) {

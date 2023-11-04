@@ -33,6 +33,18 @@ public class ApproveController {
         }
     }
 
+    //Not Approve Reservation
+    @PostMapping("/not-approve-reservation/{id}")
+    public ResponseEntity<?> notApproveReservation(@PathVariable Long id,  @RequestHeader("Authorization") String bearerToken){
+        try {
+            return ResponseEntity.ok(approveService.notApproveReservation(id, bearerToken));
+        }catch (ReservationNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
     //Find All Approve
     @GetMapping("/AllApprove")
     public ResponseEntity<?> findAllApprove(){
