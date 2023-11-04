@@ -100,10 +100,10 @@ public class ReservationController {
 
     //Delete Reservation for Admin
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> cancelReservation(@PathVariable Long id) {
+    public ResponseEntity<?> deleteReservation(@PathVariable Long id) {
         try {
-            reservationService.cancelReservation(id);
-            return ResponseEntity.ok(new MessageResponse("Delete Successfully!"));
+            reservationService.deleteReservation(id);
+            return ResponseEntity.ok(new MessageResponse("Reservation Delete Successfully!"));
         } catch (ReservationNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -111,5 +111,20 @@ public class ReservationController {
         }
     }
 
-    //TODO delete for student
+    //Delete Reservation for Student
+    @DeleteMapping("/delete-student-reservation/{id}")
+    public ResponseEntity<?> deleteStudentReservation(@PathVariable Long id,
+                                                      @RequestHeader("Authorization") String bearerToken) {
+        try {
+            String token = tokenDecodeService.extractToken(bearerToken);
+            UserTokenDTO userTokenDTO = tokenDecodeService.decodeToken(token);
+
+            reservationService.cancelReservation(id, userTokenDTO);
+            return ResponseEntity.ok(new MessageResponse("Reservation Delete Successfully!"));
+        } catch (ReservationNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
 }

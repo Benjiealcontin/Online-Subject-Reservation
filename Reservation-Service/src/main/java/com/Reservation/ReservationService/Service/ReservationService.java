@@ -204,13 +204,24 @@ public class ReservationService {
     }
 
     //Delete Reservation
-    public void cancelReservation(Long id) {
+    public void deleteReservation(Long id) {
         if (!reservationRepository.existsById(id)) {
             throw new ReservationNotFoundException("Reservation with ID " + id + " not found.");
         }
         reservationRepository.deleteById(id);
     }
 
+    //Delete the reserve subject of student
+    public void cancelReservation(Long id, UserTokenDTO userTokenDTO) {
+        Reservation reservation = reservationRepository.findByIdAndStudentId(id, userTokenDTO.getSub());
+        if (reservation == null) {
+            throw new ReservationNotFoundException("Reservation not found with id: " + id + " and studentId: " + userTokenDTO.getSub());
+        }
+
+        reservationRepository.deleteById(id);
+    }
+
+    //Circuit Breaker
     public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Exception e) {
         if (e instanceof ReservationExistsException) {
             // Display the custom message when ReservationExistsException is thrown

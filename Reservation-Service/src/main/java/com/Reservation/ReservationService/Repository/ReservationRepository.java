@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
     boolean existsBySubjectCodeAndStudentId(String subjectCode, String studentId);
+    Reservation findByIdAndStudentId(Long id, String studentId);
     List<Reservation> findAllByStudentId(String studentId);
     List<Reservation> findAllByStatus(String status);
 

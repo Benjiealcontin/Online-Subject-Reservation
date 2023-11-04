@@ -34,6 +34,8 @@ public class SecurityConfig {
                             "api/reservation/reservation/subject").hasRole(STUDENT);
                     auth.requestMatchers(HttpMethod.DELETE,
                             "api/reservation/delete/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.DELETE,
+                            "api/reservation/delete-student-reservation/*").hasRole(STUDENT);
                     auth.requestMatchers(HttpMethod.PUT,
                             "api/reservation/approve-reservation/*").hasRole(ADMIN);
 
