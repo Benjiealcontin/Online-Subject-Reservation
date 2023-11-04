@@ -19,6 +19,7 @@ public class TokenDecodeService {
         DecodedJWT decodedJWT = JWT.decode(token);
         String sub = decodedJWT.getSubject();
         String email = decodedJWT.getClaim("email").asString();
-        return new UserTokenDTO(sub, email);
+        String familyName = decodedJWT.getClaim("family_name").asString();
+        return new UserTokenDTO(sub, email, familyName);
     }
 }

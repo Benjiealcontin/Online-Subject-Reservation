@@ -38,7 +38,9 @@ public class ReservationController {
             return ResponseEntity.ok(reservationService.reserveSubject(reservationRequest, bearerToken, userTokenDTO));
         } catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (NoAvailableSlotsException | ReservationExistsException e) {
+        } catch (ReservationExistsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (NoAvailableSlotsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());

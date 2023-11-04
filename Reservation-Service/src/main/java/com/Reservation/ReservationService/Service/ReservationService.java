@@ -1,9 +1,6 @@
 package com.Reservation.ReservationService.Service;
 
-import com.Reservation.ReservationService.Dto.MessageResponse;
-import com.Reservation.ReservationService.Dto.ScheduleDTO;
-import com.Reservation.ReservationService.Dto.SubjectDTO;
-import com.Reservation.ReservationService.Dto.UserTokenDTO;
+import com.Reservation.ReservationService.Dto.*;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
 import com.Reservation.ReservationService.Exception.ReservationExistsException;
@@ -57,7 +54,7 @@ public class ReservationService {
         //TODO check if the subject that reserve is already approve or not
 
         try {
-            SubjectDTO reservationDto = webClientBuilder.build()
+            SubjectDTO subjectDTO = webClientBuilder.build()
                     .get()
                     .uri(SUBJECT_URL + "/subjectCode/{subjectCode}", SubjectCode)
                     .header(HttpHeaders.AUTHORIZATION, bearerToken)
@@ -65,9 +62,9 @@ public class ReservationService {
                     .bodyToMono(SubjectDTO.class)
                     .block();
 
-            assert reservationDto != null;
+            assert subjectDTO != null;
 
-            List<ScheduleDTO> scheduleList = reservationDto.getScheduleList();
+            List<ScheduleDTO> scheduleList = subjectDTO.getScheduleList();
             boolean foundMatchingDay = false; // Flag to track if any matching day was found
             boolean foundMatchingTime = false; // Flag to track if any matching time was found
 
@@ -88,7 +85,20 @@ public class ReservationService {
                                 .transactionId(transactionId)
                                 .build();
 
-                        reservationNotification(reservation, userTokenDTO);
+                        ReservationDTO reservationDTO = ReservationDTO.builder()
+                                .day(day)
+                                .timeSchedule(time)
+                                .location(schedule.getLocation())
+                                .subjectCode(SubjectCode)
+                                .studentId(userTokenDTO.getSub())
+                                .email(userTokenDTO.getEmail())
+                                .status("Pending")
+                                .transactionId(transactionId)
+                                .familyName(userTokenDTO.getFamilyName())
+                                .subjectName(subjectDTO.getSubjectName())
+                                .build();
+
+                        reservationNotification(reservationDTO, userTokenDTO);
 
                         reservationRepository.save(reservation);
                         foundMatchingTime = true;
@@ -123,12 +133,11 @@ public class ReservationService {
     }
 
     //Reservation Notification
-    public void reservationNotification(Reservation reservation, UserTokenDTO userTokenDTO) {
+    public void reservationNotification(ReservationDTO reservation, UserTokenDTO userTokenDTO) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
 
             String jsonMessage = objectMapper.writeValueAsString(reservation);
-
 
             CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", userTokenDTO.getSub(), jsonMessage);
 
@@ -202,8 +211,14 @@ public class ReservationService {
         reservationRepository.deleteById(id);
     }
 
-    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Throwable t) {
-        log.warn("Circuit breaker fallback: Unable to create reservation. Error: {}", t.getMessage());
-        return new MessageResponse("Reservation service is temporarily unavailable. Please try again later.");
+    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Exception e) {
+        if (e instanceof ReservationExistsException) {
+            // Display the custom message when ReservationExistsException is thrown
+            throw new ReservationExistsException(e.getMessage());
+        } else {
+            // Handle other exceptions or provide a default fallback response
+            return new MessageResponse("Fallback response for other exceptions.");
+        }
     }
+
 }

@@ -6,7 +6,6 @@ import freemarker.template.TemplateException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -28,20 +27,24 @@ public class ReservationEmailSender {
         this.config = config;
     }
 
-    public void reservationEmailSender(String email,  Map<String, Object> model) throws MessagingException, TemplateException, IOException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
-                StandardCharsets.UTF_8.name());
+    public void reservationEmailSender(String email, Map<String, Object> model) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
 
-        Template t1 = config.getTemplate("reserve-template.ftl");
-        String reserveHtml = FreeMarkerTemplateUtils.processTemplateIntoString(t1, model);
+            Template t1 = config.getTemplate("reserve-template.ftl");
+            String reserveHtml = FreeMarkerTemplateUtils.processTemplateIntoString(t1, model);
 
-        helper.setTo(email);
-        helper.setText(reserveHtml, true);
-        helper.setSubject("Appointment Notification");
-        helper.setFrom("benjiealcontin23@gmail.com");
-        mailSender.send(message);
-        System.out.println("Mail Sent for Doctor is successfully");
+            helper.setTo(email);
+            helper.setText(reserveHtml, true);
+            helper.setSubject("Reservation Notification");
+            helper.setFrom("benjiealcontin23@gmail.com");
+            mailSender.send(message);
+            System.out.println("Mail Sent for Student is successfully");
+        } catch (MessagingException | TemplateException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

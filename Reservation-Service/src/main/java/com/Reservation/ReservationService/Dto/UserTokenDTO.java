@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class UserTokenDTO {
     private String sub;
     private String email;
+    private String familyName;
 }
