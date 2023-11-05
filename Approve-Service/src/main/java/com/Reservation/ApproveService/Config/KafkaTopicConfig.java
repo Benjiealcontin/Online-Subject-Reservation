@@ -21,10 +21,18 @@ public class KafkaTopicConfig {
 
     // Create the topic bean with 3 partitions
     @Bean
-    public NewTopic topicName() {
+    public NewTopic topicApprove() {
         // Replace 'topicName' with your desired topic name
         // Use 3 for the number of partitions
         // Use 1 for the replication factor
         return new NewTopic("approve", 3, (short) 1);
+    }
+
+    @Bean
+    public NewTopic topicNotApprove() {
+        // Replace 'topicName' with your desired topic name
+        // Use 3 for the number of partitions
+        // Use 1 for the replication factor
+        return new NewTopic("notApprove", 3, (short) 1);
     }
 }

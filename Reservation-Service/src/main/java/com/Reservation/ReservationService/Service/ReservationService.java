@@ -52,6 +52,7 @@ public class ReservationService {
         }
 
         //TODO check if the subject that reserve is already approve or not
+        //TODO check if the slot is empty
 
         try {
             SubjectDTO subjectDTO = webClientBuilder.build()
@@ -81,24 +82,14 @@ public class ReservationService {
                                 .subjectCode(SubjectCode)
                                 .studentId(userTokenDTO.getSub())
                                 .email(userTokenDTO.getEmail())
-                                .status("Pending")
-                                .transactionId(transactionId)
-                                .build();
-
-                        ReservationDTO reservationDTO = ReservationDTO.builder()
-                                .day(day)
-                                .timeSchedule(time)
-                                .location(schedule.getLocation())
-                                .subjectCode(SubjectCode)
-                                .studentId(userTokenDTO.getSub())
-                                .email(userTokenDTO.getEmail())
-                                .status("Pending")
-                                .transactionId(transactionId)
-                                .familyName(userTokenDTO.getFamilyName())
+                                .firstName(userTokenDTO.getGivenName())
+                                .lastName(userTokenDTO.getFamilyName())
                                 .subjectName(subjectDTO.getSubjectName())
+                                .status("Pending")
+                                .transactionId(transactionId)
                                 .build();
 
-                        reservationNotification(reservationDTO, userTokenDTO);
+                        reservationNotification(reservation);
 
                         reservationRepository.save(reservation);
                         foundMatchingTime = true;
@@ -133,22 +124,22 @@ public class ReservationService {
     }
 
     //Reservation Notification
-    public void reservationNotification(ReservationDTO reservation, UserTokenDTO userTokenDTO) {
+    public void reservationNotification(Reservation reservation) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
 
             String jsonMessage = objectMapper.writeValueAsString(reservation);
 
-            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", userTokenDTO.getSub(), jsonMessage);
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", reservation.getStudentId(), jsonMessage);
 
             future.whenComplete((result, ex) -> {
                 if (ex == null) {
                     RecordMetadata metadata = result.getRecordMetadata();
 
                     log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
-                            userTokenDTO.getSub(), jsonMessage, metadata.partition(), metadata.offset());
+                            reservation.getStudentId(), jsonMessage, metadata.partition(), metadata.offset());
                 } else {
-                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenDTO.getSub(), jsonMessage, ex.getMessage());
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", reservation.getStudentId(), jsonMessage, ex.getMessage());
                 }
             });
         } catch (JsonProcessingException e) {
@@ -165,7 +156,6 @@ public class ReservationService {
         }
 
         return reservation;
-
     }
 
     //Find All Reservation

@@ -1,5 +1,7 @@
 package com.Reservatopn.NotificationService.Service;
 
+import com.Reservatopn.NotificationService.Service.EmailSender.ApproveEmailSender;
+import com.Reservatopn.NotificationService.Service.EmailSender.ReservationEmailSender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,13 +17,15 @@ import java.util.Map;
 @Slf4j
 public class ReservationKafkaMessageListener {
     private final ReservationEmailSender reservationEmailSender;
+    private final ApproveEmailSender approveEmailSender;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ReservationKafkaMessageListener(ReservationEmailSender reservationEmailSender) {
+    public ReservationKafkaMessageListener(ReservationEmailSender reservationEmailSender, ApproveEmailSender approveEmailSender) {
         this.reservationEmailSender = reservationEmailSender;
+        this.approveEmailSender = approveEmailSender;
     }
 
-    //Listener 1
+    //Reservation Listener 1
     @KafkaListener(topics = "reservation", groupId = "reservation-group")
     public void reservationListener1(ConsumerRecord<String, String> record) {
         String key = record.key();
@@ -40,7 +44,7 @@ public class ReservationKafkaMessageListener {
         }
     }
 
-    //Listener 2
+    //Reservation Listener 2
     @KafkaListener(topics = "reservation", groupId = "reservation-group")
     public void reservationListener2(ConsumerRecord<String, String> record) {
         String key = record.key();
@@ -59,7 +63,7 @@ public class ReservationKafkaMessageListener {
         }
     }
 
-    //Listener 3
+    //Reservation Listener 3
     @KafkaListener(topics = "reservation", groupId = "reservation-group")
     public void reservationListener3(ConsumerRecord<String, String> record) {
         String key = record.key();
@@ -91,9 +95,8 @@ public class ReservationKafkaMessageListener {
         reservation.put("location", jsonNode.get("location").asText());
         reservation.put("status", jsonNode.get("status").asText());
         reservation.put("subjectName", jsonNode.get("subjectName").asText());
-        reservation.put("familyName", jsonNode.get("familyName").asText());
+        reservation.put("familyName", jsonNode.get("lastName").asText());
 
         return reservation;
     }
-
 }

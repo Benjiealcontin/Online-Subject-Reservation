@@ -20,6 +20,7 @@ public class TokenDecodeService {
         String sub = decodedJWT.getSubject();
         String email = decodedJWT.getClaim("email").asString();
         String familyName = decodedJWT.getClaim("family_name").asString();
-        return new UserTokenDTO(sub, email, familyName);
+        String givenName = decodedJWT.getClaim("given_name").asString();
+        return new UserTokenDTO(sub, email, givenName, familyName);
     }
 }

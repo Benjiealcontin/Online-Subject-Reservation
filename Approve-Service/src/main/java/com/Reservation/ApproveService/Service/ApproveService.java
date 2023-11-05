@@ -5,8 +5,12 @@ import com.Reservation.ApproveService.Dto.MessageResponse;
 import com.Reservation.ApproveService.Dto.ReservationDTO;
 import com.Reservation.ApproveService.Entity.Approve;
 import com.Reservation.ApproveService.Exception.ApproveNotFoundException;
+import com.Reservation.ApproveService.Exception.NoAvailableSlotsException;
 import com.Reservation.ApproveService.Exception.ReservationNotFoundException;
 import com.Reservation.ApproveService.Repository.ApproveRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -26,18 +30,16 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @Slf4j
 public class ApproveService {
+    public final String RESERVATION_URI = "http://Reservation-Service/api/reservation";
+    public final String SUBJECT_URI = "http://Subject-Service/api/subject";
     private final ApproveRepository approveRepository;
     private final WebClient.Builder webClientBuilder;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-
     public ApproveService(ApproveRepository approveRepository, WebClient.Builder webClientBuilder, KafkaTemplate<String, Object> kafkaTemplate) {
         this.approveRepository = approveRepository;
         this.webClientBuilder = webClientBuilder;
         this.kafkaTemplate = kafkaTemplate;
     }
-
-    public final String RESERVATION_URI = "http://Reservation-Service/api/reservation";
-    public final String SUBJECT_URI = "http://Subject-Service/api/subject";
 
     //Approve Reservation
     public MessageResponse approveReservation(Long id, String bearerToken) {
@@ -57,6 +59,7 @@ public class ApproveService {
             approve.setStatus("Confirmed");
             approve.setApprovedAt(LocalDateTime.now());
 
+            //TODO check if the slot is empty
 
             Mono<Void> result = webClientBuilder.build()
                     .delete()
@@ -114,6 +117,7 @@ public class ApproveService {
                     .then();
             result.block();
 
+            //TODO check if the slot is empty
             Mono<Void> result2 = webClientBuilder.build()
                     .put()
                     .uri(SUBJECT_URI + "/slot/{subjectCode}", reservation.getSubjectCode())
@@ -123,11 +127,13 @@ public class ApproveService {
                     .then();
             result2.block();
 
+            notApproveNotification(approve);
+
             approveRepository.save(approve);
 
-            approveNotification(approve);
-
             return new MessageResponse("Not Approve Successfully.");
+        } catch (WebClientResponseException.Conflict e) {
+            throw new NoAvailableSlotsException(e.getResponseBodyAsString());
         } catch (WebClientResponseException.NotFound e) {
             throw new ReservationNotFoundException(e.getResponseBodyAsString());
         }
@@ -135,20 +141,56 @@ public class ApproveService {
 
     //Approve Notification
     public void approveNotification(Approve approve) {
-        CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("reservation", approve.getStudentId());
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                RecordMetadata metadata = result.getRecordMetadata();
-                log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
-                        approve.getStudentId(), approve, metadata.partition(), metadata.offset());
-            } else {
-                log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", approve.getStudentId(), approve, ex.getMessage());
-            }
-        });
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            String jsonMessage = objectMapper.writeValueAsString(approve);
+
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("approve", approve.getStudentId(), jsonMessage);
+
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            approve.getStudentId(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", approve.getStudentId(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    //Not Approve Notification
+    public void notApproveNotification(Approve approve) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            String jsonMessage = objectMapper.writeValueAsString(approve);
+
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send("notApprove", approve.getStudentId(), jsonMessage);
+
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            approve.getStudentId(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", approve.getStudentId(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
     }
 
     //Find Approve By ID
-    public Optional<Approve> getApproveById(Long id){
+    public Optional<Approve> getApproveById(Long id) {
         Optional<Approve> approve = approveRepository.findById(id);
 
         if (approve.isEmpty()) {
@@ -159,7 +201,7 @@ public class ApproveService {
     }
 
     //Find All
-    public List<Approve> getAllApprove(){
+    public List<Approve> getAllApprove() {
         List<Approve> approveList = approveRepository.findAll();
 
         if (approveList.isEmpty()) {
@@ -171,7 +213,7 @@ public class ApproveService {
 
 
     //Find All Approve
-    public List<Approve> getAllApproveByConfirmed(){
+    public List<Approve> getAllApproveByConfirmed() {
         List<Approve> approveList = approveRepository.findAllByStatus("Confirmed");
 
         if (approveList.isEmpty()) {
@@ -182,7 +224,7 @@ public class ApproveService {
     }
 
     //Find All Not Approve
-    public List<Approve> getAllNotApprove(){
+    public List<Approve> getAllNotApprove() {
         List<Approve> approveList = approveRepository.findAllByStatus("Denied");
 
         if (approveList.isEmpty()) {
@@ -193,51 +235,51 @@ public class ApproveService {
     }
 
     //Find All Approve of student by StudentId
-    public List<Approve> getApproveByStudentId(String studentId){
-        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId,"Confirmed");
+    public List<Approve> getApproveByStudentId(String studentId) {
+        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId, "Confirmed");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Approve with Student ID " + studentId + " not found.");
         }
 
-        return  approveList;
+        return approveList;
     }
 
     //Find All Not Approve of student by StudentId
-    public List<Approve> getNotApproveByStudentId(String studentId){
-        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId,"Denied");
+    public List<Approve> getNotApproveByStudentId(String studentId) {
+        List<Approve> approveList = approveRepository.findAllByStudentIdAndStatus(studentId, "Denied");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Not Approve with Student ID " + studentId + " not found.");
         }
 
-        return  approveList;
+        return approveList;
     }
 
     //Find All Approve of student by subject code
-    public List<Approve> getApproveOfStudentBySubjectCode(String subjectCode){
+    public List<Approve> getApproveOfStudentBySubjectCode(String subjectCode) {
         List<Approve> approveList = approveRepository.findAllBySubjectCodeAndStatus(subjectCode, "Confirmed");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Approve with Subject Code " + subjectCode + " not found.");
         }
 
-        return  approveList;
+        return approveList;
     }
 
     //Find All Not Approve of student by subject code
-    public List<Approve> getNotApproveOfStudentBySubjectCode(String subjectCode){
-        List<Approve> approveList = approveRepository.findAllBySubjectCodeAndStatus(subjectCode,"Denied");
+    public List<Approve> getNotApproveOfStudentBySubjectCode(String subjectCode) {
+        List<Approve> approveList = approveRepository.findAllBySubjectCodeAndStatus(subjectCode, "Denied");
 
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Not Approve with Subject Code " + subjectCode + " not found.");
         }
 
-        return  approveList;
+        return approveList;
     }
 
     //Delete approve and not approve
-    public void deleteApproveById(Long id){
+    public void deleteApproveById(Long id) {
         if (!approveRepository.existsById(id)) {
             throw new ApproveNotFoundException("Approve with ID " + id + " not found.");
         }

@@ -1,4 +1,4 @@
-package com.Reservatopn.NotificationService.Service;
+package com.Reservatopn.NotificationService.Service.EmailSender;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -17,34 +17,33 @@ import java.util.Map;
 
 @Service
 @Slf4j
-public class ReservationEmailSender {
+public class ApproveEmailSender {
     private final JavaMailSender mailSender;
 
     private final Configuration config;
 
-    public ReservationEmailSender(JavaMailSender mailSender, Configuration config) {
+    public ApproveEmailSender(JavaMailSender mailSender, Configuration config) {
         this.mailSender = mailSender;
         this.config = config;
     }
 
-    public void reservationEmailSender(String email, Map<String, Object> model) {
+    public void approveEmailSender(String email, Map<String, Object> model) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
                     StandardCharsets.UTF_8.name());
 
-            Template t1 = config.getTemplate("reserve-template.ftl");
+            Template t1 = config.getTemplate("approve-template.ftl");
             String reserveHtml = FreeMarkerTemplateUtils.processTemplateIntoString(t1, model);
 
             helper.setTo(email);
             helper.setText(reserveHtml, true);
-            helper.setSubject("Reservation Notification");
+            helper.setSubject("Approve Notification");
             helper.setFrom("benjiealcontin23@gmail.com");
             mailSender.send(message);
-            System.out.println("Mail Sent for Student is successfully");
+            System.out.println("Approve Mail Sent for Student is successfully");
         } catch (MessagingException | TemplateException | IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 }
