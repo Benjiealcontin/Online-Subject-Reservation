@@ -40,8 +40,8 @@ public class SubjectController {
             }
             MessageResponse response = subjectService.createSubject(subjectRequest);
             return ResponseEntity.ok(response);
-        } catch (SubjectAlreadyExistsException | SubjectCodeAlreadyExistsException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("An error occurred: " + e.getMessage());
+        } catch (SubjectAlreadyExistsException | SubjectCodeAlreadyExistsException | NoAvailableSlotsException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
@@ -109,12 +109,27 @@ public class SubjectController {
         }
     }
 
-    //Update Available Slot
-    @PutMapping("/slot/{subjectCode}")
-    public ResponseEntity<?> UpdateAvailableSlot(@PathVariable String subjectCode) {
+    //Slot Reduction
+    @PutMapping("/slotReduction/{subjectCode}")
+    public ResponseEntity<?> SlotReduction(@PathVariable String subjectCode) {
         try {
-            subjectService.UpdateAvailableSlot(subjectCode);
+            subjectService.SlotReduction(subjectCode);
             return ResponseEntity.ok("Successfully Slot redacted");
+        }catch (SubjectNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }  catch (NoAvailableSlotsException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Slot Addition
+    @PutMapping("/slotAddition/{subjectCode}")
+    public ResponseEntity<?> SlotAddition(@PathVariable String subjectCode) {
+        try {
+            subjectService.SlotAddition(subjectCode);
+            return ResponseEntity.ok("Successfully Slot added");
         }catch (SubjectNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }  catch (NoAvailableSlotsException e) {

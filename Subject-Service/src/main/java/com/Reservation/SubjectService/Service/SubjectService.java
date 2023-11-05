@@ -150,8 +150,8 @@ public class SubjectService {
         }
     }
 
-    //Update Available Slot
-    public void UpdateAvailableSlot(String subjectCode) {
+    //Slot Reduction
+    public void SlotReduction(String subjectCode) {
         int SlotReduction = 1;
 
         Subject existingSubject = subjectRepository.findBySubjectCode(subjectCode).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
@@ -167,6 +167,21 @@ public class SubjectService {
         subjectRepository.save(existingSubject);
 
     }
+
+    //Slot Reduction
+    public void SlotAddition(String subjectCode) {
+        int SlotAddition = 1;
+
+        Subject existingSubject = subjectRepository.findBySubjectCode(subjectCode).orElseThrow(() -> new SubjectNotFoundException("Subject not found"));
+
+        int updateSlot = existingSubject.getAvailableSlots() + SlotAddition;
+
+        existingSubject.setAvailableSlots(updateSlot);
+
+        subjectRepository.save(existingSubject);
+
+    }
+
 
     //
     //  Instructor Management

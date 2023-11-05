@@ -1,6 +1,9 @@
 package com.Reservation.ReservationService.Service;
 
-import com.Reservation.ReservationService.Dto.*;
+import com.Reservation.ReservationService.Dto.MessageResponse;
+import com.Reservation.ReservationService.Dto.ScheduleDTO;
+import com.Reservation.ReservationService.Dto.SubjectDTO;
+import com.Reservation.ReservationService.Dto.UserTokenDTO;
 import com.Reservation.ReservationService.Entity.Reservation;
 import com.Reservation.ReservationService.Exception.NoAvailableSlotsException;
 import com.Reservation.ReservationService.Exception.ReservationExistsException;
@@ -19,6 +22,7 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +56,6 @@ public class ReservationService {
         }
 
         //TODO check if the subject that reserve is already approve or not
-        //TODO check if the slot is empty
 
         try {
             SubjectDTO subjectDTO = webClientBuilder.build()
@@ -64,6 +67,19 @@ public class ReservationService {
                     .block();
 
             assert subjectDTO != null;
+
+            if (subjectDTO.getAvailableSlots() == 0) {
+                throw new NoAvailableSlotsException("No available slots for subject with subject code: " + subjectDTO.getSubjectCode());
+            }
+
+            Mono<Void> result = webClientBuilder.build()
+                    .put()
+                    .uri(SUBJECT_URL + "/slotReduction/{subjectCode}", subjectDTO.getSubjectCode())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .then();
+            result.block();
 
             List<ScheduleDTO> scheduleList = subjectDTO.getScheduleList();
             boolean foundMatchingDay = false; // Flag to track if any matching day was found
@@ -109,6 +125,8 @@ public class ReservationService {
             }
 
             return new MessageResponse("Reservation Successfully!");
+        } catch (NoAvailableSlotsException e) {
+            throw new NoAvailableSlotsException(e.getMessage());
         } catch (WebClientResponseException.Conflict e) {
             throw new NoAvailableSlotsException(e.getResponseBodyAsString());
         } catch (WebClientResponseException.ServiceUnavailable e) {
@@ -212,14 +230,14 @@ public class ReservationService {
     }
 
     //Circuit Breaker
-    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Exception e) {
+    public MessageResponse ReservationFallback(ReservationRequest reservationRequest, String bearerToken, UserTokenDTO userTokenDTO, Exception e, Throwable throwable) {
         if (e instanceof ReservationExistsException) {
-            // Display the custom message when ReservationExistsException is thrown
             throw new ReservationExistsException(e.getMessage());
+        } else if (e instanceof NoAvailableSlotsException) {
+            throw new NoAvailableSlotsException(e.getMessage());
         } else {
-            // Handle other exceptions or provide a default fallback response
-            return new MessageResponse("Fallback response for other exceptions.");
+            log.error("Circuit breaker fallback: Unable to create appointment. Error: {}", throwable.getMessage());
+            return new MessageResponse("Reservation creation is currently unavailable. Please try again later.");
         }
     }
-
 }

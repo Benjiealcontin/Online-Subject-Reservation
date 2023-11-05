@@ -32,13 +32,13 @@ public class SecurityConfig {
                             "api/subject/instructor/lastname/*",
                             "api/subject/instructor/expertise/*").permitAll();
                     auth.requestMatchers(HttpMethod.POST,
-                            "api/subject/create-subject").hasRole(STUDENT);
+                            "api/subject/create-subject",
+                            "api/subject/slotReduction/*").hasRole(STUDENT);
                     auth.requestMatchers(HttpMethod.DELETE,
                             "api/subject/delete/*").hasRole(ADMIN);
                     auth.requestMatchers(HttpMethod.PUT,
-                            "api/subject/slot/*").hasRole(ADMIN);
-                    auth.requestMatchers(HttpMethod.PUT,
-                            "api/subject/update/*").hasRole(ADMIN);
+                            "api/subject/update/*",
+                            "api/subject/slotAddition/*").hasRole(ADMIN);
                     auth.anyRequest().authenticated();
                 });
 

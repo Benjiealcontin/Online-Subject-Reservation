@@ -3,6 +3,7 @@ package com.Reservation.ApproveService.Service;
 
 import com.Reservation.ApproveService.Dto.MessageResponse;
 import com.Reservation.ApproveService.Dto.ReservationDTO;
+import com.Reservation.ApproveService.Dto.SubjectDTO;
 import com.Reservation.ApproveService.Entity.Approve;
 import com.Reservation.ApproveService.Exception.ApproveNotFoundException;
 import com.Reservation.ApproveService.Exception.NoAvailableSlotsException;
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.BeanUtils;
@@ -35,6 +37,8 @@ public class ApproveService {
     private final ApproveRepository approveRepository;
     private final WebClient.Builder webClientBuilder;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    String SUBJECT_URL = "http://Subject-Service/api/subject";
+
     public ApproveService(ApproveRepository approveRepository, WebClient.Builder webClientBuilder, KafkaTemplate<String, Object> kafkaTemplate) {
         this.approveRepository = approveRepository;
         this.webClientBuilder = webClientBuilder;
@@ -42,6 +46,7 @@ public class ApproveService {
     }
 
     //Approve Reservation
+    @CircuitBreaker(name = "Approve", fallbackMethod = "ApproveFallback")
     public MessageResponse approveReservation(Long id, String bearerToken) {
         try {
             ReservationDTO reservation = webClientBuilder.build()
@@ -59,7 +64,18 @@ public class ApproveService {
             approve.setStatus("Confirmed");
             approve.setApprovedAt(LocalDateTime.now());
 
-            //TODO check if the slot is empty
+            SubjectDTO subjectDTO = webClientBuilder.build()
+                    .get()
+                    .uri(SUBJECT_URL + "/subjectCode/{subjectCode}", reservation.getSubjectCode())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .bodyToMono(SubjectDTO.class)
+                    .block();
+
+            assert subjectDTO != null;
+            if (subjectDTO.getAvailableSlots() == 0) {
+                throw new NoAvailableSlotsException("No available slots for subject with subject code: " + subjectDTO.getSubjectCode());
+            }
 
             Mono<Void> result = webClientBuilder.build()
                     .delete()
@@ -69,15 +85,6 @@ public class ApproveService {
                     .toBodilessEntity()
                     .then();
             result.block();
-
-            Mono<Void> result2 = webClientBuilder.build()
-                    .put()
-                    .uri(SUBJECT_URI + "/slot/{subjectCode}", reservation.getSubjectCode())
-                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .then();
-            result2.block();
 
             approveRepository.save(approve);
 
@@ -90,6 +97,7 @@ public class ApproveService {
     }
 
     //Not Approve Reservation
+    @CircuitBreaker(name = "Approve", fallbackMethod = "ApproveFallback")
     public MessageResponse notApproveReservation(Long id, String bearerToken) {
         try {
             ReservationDTO reservation = webClientBuilder.build()
@@ -117,10 +125,22 @@ public class ApproveService {
                     .then();
             result.block();
 
-            //TODO check if the slot is empty
+            SubjectDTO subjectDTO = webClientBuilder.build()
+                    .get()
+                    .uri(SUBJECT_URL + "/subjectCode/{subjectCode}", reservation.getSubjectCode())
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .bodyToMono(SubjectDTO.class)
+                    .block();
+
+            assert subjectDTO != null;
+            if (subjectDTO.getAvailableSlots() == 0) {
+                throw new NoAvailableSlotsException("No available slots for subject with subject code: " + subjectDTO.getSubjectCode());
+            }
+
             Mono<Void> result2 = webClientBuilder.build()
                     .put()
-                    .uri(SUBJECT_URI + "/slot/{subjectCode}", reservation.getSubjectCode())
+                    .uri(SUBJECT_URI + "/slotAddition/{subjectCode}", reservation.getSubjectCode())
                     .header(HttpHeaders.AUTHORIZATION, bearerToken)
                     .retrieve()
                     .toBodilessEntity()
@@ -132,6 +152,8 @@ public class ApproveService {
             approveRepository.save(approve);
 
             return new MessageResponse("Not Approve Successfully.");
+        } catch (NoAvailableSlotsException e) {
+            throw new NoAvailableSlotsException(e.getMessage());
         } catch (WebClientResponseException.Conflict e) {
             throw new NoAvailableSlotsException(e.getResponseBodyAsString());
         } catch (WebClientResponseException.NotFound e) {
@@ -284,5 +306,17 @@ public class ApproveService {
             throw new ApproveNotFoundException("Approve with ID " + id + " not found.");
         }
         approveRepository.deleteById(id);
+    }
+
+    //Circuit Breaker
+    public MessageResponse ReservationFallback(Long id, String bearerToken, Exception e, Throwable throwable) {
+        if (e instanceof ReservationNotFoundException) {
+            throw new ReservationNotFoundException(e.getMessage());
+        } else if (e instanceof NoAvailableSlotsException) {
+            throw new NoAvailableSlotsException(e.getMessage());
+        } else {
+            log.error("Circuit breaker fallback: Unable to create appointment. Error: {}", throwable.getMessage());
+            return new MessageResponse("Reservation creation is currently unavailable. Please try again later.");
+        }
     }
 }
